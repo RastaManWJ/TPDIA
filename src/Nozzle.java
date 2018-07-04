@@ -33,6 +33,10 @@ public class Nozzle {
 		return _ID;
 	}
 	
+	public boolean get_isUsed() {
+		return _isUsed;
+	}
+	
 	public void set_isUsed(boolean _isUsed) {
 		this._isUsed = _isUsed;
 	}
