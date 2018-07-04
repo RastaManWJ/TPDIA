@@ -3,10 +3,14 @@ public class Nozzle {
 	private int _ID;
 	private double _transactionCurrent;
 	private double _transactionTotal;
+	private boolean _isUsed;
 	
 	public Nozzle(int _ID) {
 		super();
 		this._ID = _ID;
+		this._transactionCurrent = 0;
+		this._transactionTotal = 0;
+		this._isUsed = false;
 	}
 
 	public double get_transactionCurrent() {
@@ -27,6 +31,10 @@ public class Nozzle {
 
 	public int get_ID() {
 		return _ID;
+	}
+	
+	public void set_isUsed(boolean _isUsed) {
+		this._isUsed = _isUsed;
 	}
 	
 }
