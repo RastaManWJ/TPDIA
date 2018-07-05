@@ -19,12 +19,24 @@ public class Main {
 		PrintWriter refuel = new PrintWriter("refuel.txt");
 		
 		//Listy zbiorników i dyspozytorów i cystern dla zbiorników
-		Nozzle nozzle1 = new Nozzle(0);
+		//Ka¿da stacja ma nozzleAmount dystrybutorów
+		int nozzleAmount = 4;
 		List<Nozzle> nozzleList = new ArrayList<Nozzle>();
-		nozzleList.add(nozzle1);
-		List<Tank> tankList = new ArrayList<Tank>();
+		for (int i = 0; i < nozzleAmount; ++i) {
+			nozzleList.add(new Nozzle(i));
+		}
+		//Lista zbiorników z manualnie wprowadzanymi danymi
 		Tank tank1 = new Tank(0, nozzleList, 30000, 27000, 25, 0);
+		Tank tank2 = new Tank(1, nozzleList, 30000, 27000, 25, 0);
+		Tank tank3 = new Tank(2, nozzleList, 30000, 27000, 25, 0);
+		Tank tank4 = new Tank(3, nozzleList, 30000, 27000, 25, 0);
+		List<Tank> tankList = new ArrayList<Tank>();
 		tankList.add(tank1);
+		tankList.add(tank2);
+		tankList.add(tank3);
+		tankList.add(tank4);
+		
+		//Stworzenie listy pustych cystern w iloœci równej iloœci zbiorników
 		List<Cistern> cisternList = new ArrayList<Cistern>();
 		for (int i = 0; i < tankList.size(); ++i) {
 			cisternList.add(new Cistern());
@@ -53,60 +65,62 @@ public class Main {
 		
 		
 		while(currentDate.compareTo(endDate) < 0) {
-			//Edycja plików wyjœciowych
-			tankMeasures.println(dateFormat.format(currentDate) + ";" + tankList.get(0).get_ID() + ";" + tankList.get(0).get_height() + ";" + tankList.get(0).get_volumeCurrent() + ";" + tankList.get(0).get_temperature());
-			for (Nozzle n : tankList.get(0).get_nozzleList()) {
-				nozzleMeasures.println(dateFormat.format(currentDate) + ";" + n.get_ID() + ";" + tankList.get(0).get_ID() + ";" + n.get_transactionCurrent() + ";" + n.get_transactionTotal() + ";" + n.get_isUsed());
-			}
-
-			//Losowanie klienta je¿eli jakiœ dystrybutor jest wolny
-			if (customerList.size() < tankList.get(0).get_nozzleList().size() && !tankList.get(0).get_tankRefuelNeeded()) {
-				if (willCustomerArrive(customerProb)) {
-					fuelNeeded = fuelNeeded(fuelMin, fuelMax);
-					fuelingTime = fuelingTime(fuelNeeded, fuelingSpeed);
-					whichNozzle = drawNozzle(tankList.get(0).get_nozzleList());
-					customerList.add(new Customer(whichNozzle, fuelNeeded, fuelingTime));
-					tankList.get(0).get_nozzleList().get(whichNozzle).set_isUsed(true);
-				}		
-			}
-			//Tankowanie paliwa przez obecnych klientów
-			for(Customer x : customerList) {
-				double fuelPerMinute = x.get_fuelNeeded() / x.get_fuelingTime();							//Iloœæ paliwa wyci¹ganego ze zbiornika na minutê
-				Nozzle n = tankList.get(0).get_nozzleList().get(x.get_nozzleUsed());						//Stworzenie kopii dystrybutora
-				tankList.get(0).set_volumeCurrent(tankList.get(0).get_volumeCurrent() - fuelPerMinute);		//Wyssanie danej wartoœci ze zbiornika
-				x.set_fuelNeeded(x.get_fuelNeeded() - fuelPerMinute);										//Aktualizacja zapotrzebowania na paliwo
-				x.set_fuelingTime(x.get_fuelingTime() - 1);													//Dekrementacja iloœci iteracji tankowania
-				n.set_transactionCurrent(n.get_transactionCurrent() + fuelPerMinute);						//Zmiana wartoœci aktualnie pobranego paliwa przez dystrybutor ze zbiornika
-				tankList.get(0).get_nozzleList().set(x.get_nozzleUsed(), n);								//Nadpisanie elementu dystrybutora w liœcie
-				//Po wykonaniu ostatniej iteracji tankowania
-				if (x.get_fuelingTime() == 0) {
-					n.set_transactionTotal(n.get_transactionTotal() + n.get_transactionCurrent());			//Dodanie koñcowego wyniku aktualnego tankowania do sumy tankowañ danego dystrybutora
-					n.set_transactionCurrent(0);															//Wyzerowanie licznika aktualnej transakcji
-					n.set_isUsed(false);																	//Zwolnienie dystrybutora
-					tankList.get(0).get_nozzleList().set(x.get_nozzleUsed(), n);							//Nadpisanie elementu dystrybutora w liœcie
+			for (Tank t : tankList) {
+				//Edycja plików wyjœciowych
+				tankMeasures.println(dateFormat.format(currentDate) + ";" + t.get_ID() + ";" + t.get_height() + ";" + t.get_volumeCurrent() + ";" + t.get_temperature());
+				for (Nozzle n : t.get_nozzleList()) {
+					nozzleMeasures.println(dateFormat.format(currentDate) + ";" + n.get_ID() + ";" + t.get_ID() + ";" + n.get_transactionCurrent() + ";" + n.get_transactionTotal() + ";" + n.get_isUsed());
 				}
-			}
-			customerList.removeIf(y->y.get_fuelingTime() == 0);												//Usuniêcie klienta z listy
-			
-			//Sprawdzenie czy dany zbiornik potrzebuje dostawy
-			if (tankList.get(0).get_volumeCurrent() < tankList.get(0).get_volumeMax()*supplyFuelTreshold && !tankList.get(0).get_tankRefuelNeeded()) {
-				tankList.get(0).set_tankRefuelNeeded(true);
-				double refuelNeeded = tankList.get(0).get_volumeMax() * 0.8;
-				cisternList.set(tankList.get(0).get_ID(), new Cistern(tankList.get(0).get_ID(), refuelNeeded, refuelNeeded, 25));
-				refuel.println(dateFormat.format(currentDate) + ";" + tankList.get(0).get_ID() + ";" + refuelNeeded + ";" + refuelingTankSpeed);
-			}
-			
-			//Nape³nianie zbiornika
-			if (tankList.get(0).get_tankRefuelNeeded() && customerList.size() < 1) {
-				if (cisternList.get(tankList.get(0).get_ID()).get_volumeCurrent() >= refuelingTankSpeed) {
-					Cistern c = cisternList.get(tankList.get(0).get_ID());
-					tankList.get(0).set_volumeCurrent(tankList.get(0).get_volumeCurrent() + refuelingTankSpeed);
-					c.set_volumeCurrent(c.get_volumeCurrent() - refuelingTankSpeed);
-					cisternList.set(tankList.get(0).get_ID(), c);
-				} else {
-					tankList.get(0).set_volumeCurrent(tankList.get(0).get_volumeCurrent() + cisternList.get(tankList.get(0).get_ID()).get_volumeCurrent());
-					cisternList.set(tankList.get(0).get_ID(), new Cistern());
-					tankList.get(0).set_tankRefuelNeeded(false);
+	
+				//Losowanie klienta je¿eli jakiœ dystrybutor jest wolny
+				if (customerList.size() < t.get_nozzleList().size() && !t.get_tankRefuelNeeded()) {
+					if (willCustomerArrive(customerProb)) {
+						fuelNeeded = fuelNeeded(fuelMin, fuelMax);
+						fuelingTime = fuelingTime(fuelNeeded, fuelingSpeed);
+						whichNozzle = drawNozzle(t.get_nozzleList());
+						customerList.add(new Customer(whichNozzle, fuelNeeded, fuelingTime));
+						t.get_nozzleList().get(whichNozzle).set_isUsed(true);
+					}		
+				}
+				//Tankowanie paliwa przez obecnych klientów
+				for(Customer x : customerList) {
+					double fuelPerMinute = x.get_fuelNeeded() / x.get_fuelingTime();							//Iloœæ paliwa wyci¹ganego ze zbiornika na minutê
+					Nozzle n = t.get_nozzleList().get(x.get_nozzleUsed());						//Stworzenie kopii dystrybutora
+					t.set_volumeCurrent(t.get_volumeCurrent() - fuelPerMinute);		//Wyssanie danej wartoœci ze zbiornika
+					x.set_fuelNeeded(x.get_fuelNeeded() - fuelPerMinute);										//Aktualizacja zapotrzebowania na paliwo
+					x.set_fuelingTime(x.get_fuelingTime() - 1);													//Dekrementacja iloœci iteracji tankowania
+					n.set_transactionCurrent(n.get_transactionCurrent() + fuelPerMinute);						//Zmiana wartoœci aktualnie pobranego paliwa przez dystrybutor ze zbiornika
+					t.get_nozzleList().set(x.get_nozzleUsed(), n);								//Nadpisanie elementu dystrybutora w liœcie
+					//Po wykonaniu ostatniej iteracji tankowania
+					if (x.get_fuelingTime() == 0) {
+						n.set_transactionTotal(n.get_transactionTotal() + n.get_transactionCurrent());			//Dodanie koñcowego wyniku aktualnego tankowania do sumy tankowañ danego dystrybutora
+						n.set_transactionCurrent(0);															//Wyzerowanie licznika aktualnej transakcji
+						n.set_isUsed(false);																	//Zwolnienie dystrybutora
+						t.get_nozzleList().set(x.get_nozzleUsed(), n);							//Nadpisanie elementu dystrybutora w liœcie
+					}
+				}
+				customerList.removeIf(y->y.get_fuelingTime() == 0);												//Usuniêcie klienta z listy
+				
+				//Sprawdzenie czy dany zbiornik potrzebuje dostawy
+				if (t.get_volumeCurrent() < t.get_volumeMax()*supplyFuelTreshold && !t.get_tankRefuelNeeded()) {
+					t.set_tankRefuelNeeded(true);
+					double refuelNeeded = t.get_volumeMax() * 0.8;
+					cisternList.set(t.get_ID(), new Cistern(t.get_ID(), refuelNeeded, refuelNeeded, 25));
+					refuel.println(dateFormat.format(currentDate) + ";" + t.get_ID() + ";" + refuelNeeded + ";" + refuelingTankSpeed);
+				}
+				
+				//Nape³nianie zbiornika
+				if (t.get_tankRefuelNeeded() && customerList.size() < 1) {
+					if (cisternList.get(t.get_ID()).get_volumeCurrent() >= refuelingTankSpeed) {
+						Cistern c = cisternList.get(t.get_ID());
+						t.set_volumeCurrent(t.get_volumeCurrent() + refuelingTankSpeed);
+						c.set_volumeCurrent(c.get_volumeCurrent() - refuelingTankSpeed);
+						cisternList.set(t.get_ID(), c);
+					} else {
+						t.set_volumeCurrent(t.get_volumeCurrent() + cisternList.get(t.get_ID()).get_volumeCurrent());
+						cisternList.set(t.get_ID(), new Cistern());
+						t.set_tankRefuelNeeded(false);
+					}
 				}
 			}
 			//Przejœcie do kolejnej minuty symulacji
@@ -146,9 +160,14 @@ public class Main {
 	//TO DO:
 	//Losowanie który dystrybutor zostanie wykorzystany
 	public static int drawNozzle(List<Nozzle> nozzleList) {
-		
 		//Sprawdzanie czy dany Nozzle nie jest zajêty i losowanie
-		return 0;
+		Random generator = new Random(System.nanoTime());
+		while (true) {
+			int wantedNozzle = generator.nextInt(nozzleList.size());
+			if(!nozzleList.get(wantedNozzle).get_isUsed()) {
+				return wantedNozzle;
+			}
+		}
 	}
 
 }
