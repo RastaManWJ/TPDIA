@@ -11,7 +11,8 @@ import java.util.Date;
 public class Main {
 
 	private static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	
+	//Paliwo kurcyz siê albo rozszerza o 0.12% * volume na ka¿dy stopieñ celsjusza (a diesel 0.08%)
+	//Zmiana temp tanka wzglêdem outside to 70%
 	public static void main(String[] args) throws FileNotFoundException {
 		//Tworzenie plików
 		PrintWriter tankMeasures = new PrintWriter("tankMeasures.txt");
@@ -25,22 +26,11 @@ public class Main {
 		for (int i = 0; i < nozzleAmount; ++i) {
 			nozzleList.add(new Nozzle(i));
 		}
-		//Lista zbiorników z manualnie wprowadzanymi danymi
-		Tank tank1 = new Tank(0, nozzleList, 30000, 27000, 25, 0);
-		Tank tank2 = new Tank(1, nozzleList, 30000, 27000, 25, 0);
-		Tank tank3 = new Tank(2, nozzleList, 30000, 27000, 25, 0);
-		Tank tank4 = new Tank(3, nozzleList, 30000, 27000, 25, 0);
-		List<Tank> tankList = new ArrayList<Tank>();
-		tankList.add(tank1);
-		tankList.add(tank2);
-		tankList.add(tank3);
-		tankList.add(tank4);
+
 		
 		//Stworzenie listy pustych cystern w iloœci równej iloœci zbiorników
 		List<Cistern> cisternList = new ArrayList<Cistern>();
-		for (int i = 0; i < tankList.size(); ++i) {
-			cisternList.add(new Cistern());
-		}
+
 		
 		//D³ugoœæ symulacji	
 		Date currentDate = new Date();
@@ -62,6 +52,27 @@ public class Main {
 		List<Customer> customerList = new ArrayList<Customer>();
 		double refuelingTankSpeed = 333.3333333;//Szybkoœæ zape³niania zbiornika paliwa przez cysternê
 		double supplyFuelTreshold = 0.1;		//Próg dostaw paliwa
+		
+		//Temperatury symulacji
+		double startAvgDayTemp = 16;
+		double simDayTemp = calculateDayTemp(currentDateSet.get(Calendar.HOUR_OF_DAY) + (currentDateSet.get(Calendar.MINUTE)/60), startAvgDayTemp);
+		double simTankTemp = simDayTemp * 0.7;
+		
+		//Lista zbiorników z manualnie wprowadzanymi danymi
+		Tank tank1 = new Tank(0, nozzleList, 30000, 3000, simTankTemp, 0);
+		Tank tank2 = new Tank(1, nozzleList, 30000, 27000, simTankTemp, 0);
+		Tank tank3 = new Tank(2, nozzleList, 30000, 27000, simTankTemp, 0);
+		Tank tank4 = new Tank(3, nozzleList, 30000, 27000, simTankTemp, 0);
+		List<Tank> tankList = new ArrayList<Tank>();
+		tankList.add(tank1);
+		tankList.add(tank2);
+		tankList.add(tank3);
+		tankList.add(tank4);
+		
+		for (int i = 0; i < tankList.size(); ++i) {
+			cisternList.add(new Cistern());
+		}
+		
 		
 		
 		while(currentDate.compareTo(endDate) < 0) {
@@ -111,22 +122,46 @@ public class Main {
 				
 				//Nape³nianie zbiornika
 				if (t.get_tankRefuelNeeded() && customerList.size() < 1) {
-					if (cisternList.get(t.get_ID()).get_volumeCurrent() >= refuelingTankSpeed) {
-						Cistern c = cisternList.get(t.get_ID());
+					Cistern c = cisternList.get(t.get_ID());
+					if (c.get_volumeCurrent() >= refuelingTankSpeed) {
 						t.set_volumeCurrent(t.get_volumeCurrent() + refuelingTankSpeed);
 						c.set_volumeCurrent(c.get_volumeCurrent() - refuelingTankSpeed);
+						double TempBefore = t.get_temperature();
+						t.set_temperature((t.get_volumeCurrent()*t.get_temperature() + refuelingTankSpeed * c.get_temperature())/(t.get_volumeCurrent() + refuelingTankSpeed));
+						double TempAfter = t.get_temperature();
+						t.set_volumeCurrent(t.get_volumeCurrent() + updateTankVolume(TempAfter - TempBefore, t.get_volumeCurrent()));
 						cisternList.set(t.get_ID(), c);
 					} else {
-						t.set_volumeCurrent(t.get_volumeCurrent() + cisternList.get(t.get_ID()).get_volumeCurrent());
+						double TempBefore = t.get_temperature();
+						t.set_volumeCurrent(t.get_volumeCurrent() + c.get_volumeCurrent());
+						t.set_temperature((t.get_volumeCurrent()*t.get_temperature() + c.get_volumeCurrent() * c.get_temperature())/(t.get_volumeCurrent() + c.get_volumeCurrent()));
+						double TempAfter = t.get_temperature();
+						t.set_volumeCurrent(t.get_volumeCurrent() + updateTankVolume(TempAfter - TempBefore, t.get_volumeCurrent()));
 						cisternList.set(t.get_ID(), new Cistern());
 						t.set_tankRefuelNeeded(false);
 					}
 				}
 			}
 			//Przejœcie do kolejnej minuty symulacji
+			int DayBefore = currentDateSet.get(Calendar.DATE);
+			int HourBefore = currentDateSet.get(Calendar.HOUR);
 			currentDateSet.setTime(currentDate);
 			currentDateSet.add(Calendar.MINUTE, 1);
+			int DayAfter = currentDateSet.get(Calendar.DATE);
+			int HourAfter = currentDateSet.get(Calendar.HOUR);
 			currentDate = currentDateSet.getTime();
+			if (DayBefore < DayAfter) {
+				Random generator1 = new Random(System.nanoTime());
+				double number = -2 + 4 * generator1.nextDouble();
+				startAvgDayTemp = startAvgDayTemp + number;
+			}
+			simDayTemp = calculateDayTemp(currentDateSet.get(Calendar.HOUR_OF_DAY) + (currentDateSet.get(Calendar.MINUTE)/60), startAvgDayTemp);
+			simTankTemp = simDayTemp * 0.7;
+			if (HourBefore < HourAfter) {
+				refuel.println(simDayTemp);
+			}
+			//TO DO:
+			//Zmiana objêtoœci paliwa wzglêdem temperatury otoczenia
 		}
 		System.out.println("koniec");
 		
@@ -134,6 +169,16 @@ public class Main {
 		tankMeasures.close();
 		nozzleMeasures.close();
 		refuel.close();
+	}
+	
+	//Zmiana iloœci paliwa podczas nape³niania zbiornika
+	public static double updateTankVolume(double temp, double tankVolume) {
+		return temp*0.0012*tankVolume;
+	}
+	
+	//Obliczanie temperatury w ci¹gu dnia
+	public static double calculateDayTemp(int hourandminutes, double avg) {
+		return 5*Math.sin(3.14/12*(hourandminutes-8))+ avg;
 	}
 	
 	
