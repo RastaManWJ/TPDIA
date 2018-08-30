@@ -9,8 +9,9 @@ public class Tank {
 	private double _temperature;
 	private double _height;
 	private boolean _tankRefuelNeeded;
+	private List<Customer> _customerList;
 
-	public Tank(int _ID, List<Nozzle> _nozzleList, double _volumeMax, double _volumeCurrent, double _temperature, double _height) {
+	public Tank(int _ID, List<Nozzle> _nozzleList, double _volumeMax, double _volumeCurrent, double _temperature, double _height, List<Customer> _customerList) {
 		super();
 		this._ID = _ID;
 		this._nozzleList = _nozzleList;
@@ -19,9 +20,10 @@ public class Tank {
 		this._temperature = _temperature;
 		this._height = _height;
 		this._tankRefuelNeeded = false;
+		this._customerList = _customerList;
 	}
 	
-	public Tank(int _ID, List<Nozzle> _nozzleList, double _volumeMax) {
+	public Tank(int _ID, List<Nozzle> _nozzleList, double _volumeMax, List<Customer> _customerList) {
 		super();
 		this._ID = _ID;
 		this._nozzleList = _nozzleList;
@@ -30,6 +32,7 @@ public class Tank {
 		this._temperature = 25;
 		this._height = 0;
 		this._tankRefuelNeeded = false;
+		this._customerList = _customerList;
 	}
 
 	public double get_volumeCurrent() {
@@ -70,6 +73,10 @@ public class Tank {
 	
 	public void set_tankRefuelNeeded(boolean _tankRefuelNeeded) {
 		this._tankRefuelNeeded = _tankRefuelNeeded;
+	}
+	
+	public List<Customer> get_customerList() {
+		return _customerList;
 	}
 		
 }

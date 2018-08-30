@@ -22,9 +22,21 @@ public class Main {
 		//Listy zbiorników i dyspozytorów i cystern dla zbiorników
 		//Ka¿da stacja ma nozzleAmount dystrybutorów
 		int nozzleAmount = 4;
-		List<Nozzle> nozzleList = new ArrayList<Nozzle>();
+		List<Nozzle> nozzleList1 = new ArrayList<Nozzle>();
 		for (int i = 0; i < nozzleAmount; ++i) {
-			nozzleList.add(new Nozzle(i));
+			nozzleList1.add(new Nozzle(i));
+		}
+		List<Nozzle> nozzleList2 = new ArrayList<Nozzle>();
+		for (int i = 0; i < nozzleAmount; ++i) {
+			nozzleList2.add(new Nozzle(i));
+		}
+		List<Nozzle> nozzleList3 = new ArrayList<Nozzle>();
+		for (int i = 0; i < nozzleAmount; ++i) {
+			nozzleList3.add(new Nozzle(i));
+		}
+		List<Nozzle> nozzleList4 = new ArrayList<Nozzle>();
+		for (int i = 0; i < nozzleAmount; ++i) {
+			nozzleList4.add(new Nozzle(i));
 		}
 
 		
@@ -45,11 +57,17 @@ public class Main {
 		double fuelNeeded = -1;
 		int fuelingTime = -1;
 		int whichNozzle = -1;					
-		double customerProb = 0.2; 				//Prawdopodobieñstwo pojawienia siê klienta
+		double customerProb = 0.01; 				//Prawdopodobieñstwo pojawienia siê klienta
 		int fuelMin = 10;						//Minimum przedzia³u iloœci tankowanego paliwa
 		int fuelMax = 100;						//Maximum przedzia³u iloœci tankowanego paliwa
 		int fuelingSpeed = 15;					//Szybkoœæ tankowania w litrach na minutê
-		List<Customer> customerList = new ArrayList<Customer>();
+		
+		//Lista klientów dla ka¿dego zbiornika
+		List<Customer> customerList1 = new ArrayList<Customer>();
+		List<Customer> customerList2 = new ArrayList<Customer>();
+		List<Customer> customerList3 = new ArrayList<Customer>();
+		List<Customer> customerList4 = new ArrayList<Customer>();
+		
 		double refuelingTankSpeed = 333.3333333;//Szybkoœæ zape³niania zbiornika paliwa przez cysternê
 		double supplyFuelTreshold = 0.1;		//Próg dostaw paliwa
 		
@@ -59,10 +77,10 @@ public class Main {
 		double simTankTemp = simDayTemp * 0.7;
 		
 		//Lista zbiorników z manualnie wprowadzanymi danymi
-		Tank tank1 = new Tank(0, nozzleList, 30000, 3000, simTankTemp, 0); //Dodaæ listê customerów dla danego tanka
-		Tank tank2 = new Tank(1, nozzleList, 30000, 27000, simTankTemp, 0);
-		Tank tank3 = new Tank(2, nozzleList, 30000, 27000, simTankTemp, 0);
-		Tank tank4 = new Tank(3, nozzleList, 30000, 27000, simTankTemp, 0);
+		Tank tank1 = new Tank(0, nozzleList1, 30000, 3000, simTankTemp, 0, customerList1); //Dodaæ listê customerów dla danego tanka
+		Tank tank2 = new Tank(1, nozzleList2, 30000, 27000, simTankTemp, 0, customerList2);
+		Tank tank3 = new Tank(2, nozzleList3, 30000, 27000, simTankTemp, 0, customerList3);
+		Tank tank4 = new Tank(3, nozzleList4, 30000, 27000, simTankTemp, 0, customerList4);
 		List<Tank> tankList = new ArrayList<Tank>();
 		tankList.add(tank1);
 		tankList.add(tank2);
@@ -73,8 +91,6 @@ public class Main {
 			cisternList.add(new Cistern());
 		}
 		
-		
-		
 		while(currentDate.compareTo(endDate) < 0) {
 			for (Tank t : tankList) {
 				//Edycja plików wyjœciowych
@@ -84,17 +100,17 @@ public class Main {
 				}
 	
 				//Losowanie klienta je¿eli jakiœ dystrybutor jest wolny
-				if (customerList.size() < t.get_nozzleList().size()) {
+				if (t.get_customerList().size() < t.get_nozzleList().size()) {
 					if (willCustomerArrive(customerProb)) {
 						fuelNeeded = fuelNeeded(fuelMin, fuelMax);
 						fuelingTime = fuelingTime(fuelNeeded, fuelingSpeed);
 						whichNozzle = drawNozzle(t.get_nozzleList());
-						customerList.add(new Customer(whichNozzle, fuelNeeded, fuelingTime));
+						t.get_customerList().add(new Customer(whichNozzle, fuelNeeded, fuelingTime));
 						t.get_nozzleList().get(whichNozzle).set_isUsed(true);
 					}		
 				}
 				//Tankowanie paliwa przez obecnych klientów
-				for(Customer x : customerList) {
+				for(Customer x : t.get_customerList()) {
 					double fuelPerMinute = x.get_fuelNeeded() / x.get_fuelingTime();							//Iloœæ paliwa wyci¹ganego ze zbiornika na minutê
 					Nozzle n = t.get_nozzleList().get(x.get_nozzleUsed());						//Stworzenie kopii dystrybutora
 					t.set_volumeCurrent(t.get_volumeCurrent() - fuelPerMinute);		//Wyssanie danej wartoœci ze zbiornika
@@ -110,7 +126,7 @@ public class Main {
 						t.get_nozzleList().set(x.get_nozzleUsed(), n);							//Nadpisanie elementu dystrybutora w liœcie
 					}
 				}
-				customerList.removeIf(y->y.get_fuelingTime() == 0);												//Usuniêcie klienta z listy
+				t.get_customerList().removeIf(y->y.get_fuelingTime() == 0);												//Usuniêcie klienta z listy
 				
 				//Sprawdzenie czy dany zbiornik potrzebuje dostawy
 				if (t.get_volumeCurrent() < t.get_volumeMax()*supplyFuelTreshold && !t.get_tankRefuelNeeded()) {
@@ -126,12 +142,14 @@ public class Main {
 					if (c.get_volumeCurrent() >= refuelingTankSpeed) {
 						t.set_volumeCurrent(t.get_volumeCurrent() + refuelingTankSpeed);
 						c.set_volumeCurrent(c.get_volumeCurrent() - refuelingTankSpeed);
-						double TempBefore = t.get_temperature();
-						t.set_temperature((t.get_volumeCurrent()*t.get_temperature() + refuelingTankSpeed * c.get_temperature())/(t.get_volumeCurrent() + refuelingTankSpeed));
+						//Zwiêkszanie i zmniejszanie objêtoœci paliwa pod wp³ywem zmiany temperatury
+						double TempBefore = t.get_temperature();							
+						t.set_temperature((t.get_volumeCurrent()*t.get_temperature() + refuelingTankSpeed * c.get_temperature())/(t.get_volumeCurrent() + refuelingTankSpeed)); //Nowa temperatura
 						double TempAfter = t.get_temperature();
 						t.set_volumeCurrent(t.get_volumeCurrent() + updateTankVolume(TempAfter - TempBefore, t.get_volumeCurrent()));
 						cisternList.set(t.get_ID(), c);
 					} else {
+						//Zwiêkszanie i zmniejszanie objêtoœci paliwa pod wp³ywem zmiany temperatury
 						double TempBefore = t.get_temperature();
 						t.set_volumeCurrent(t.get_volumeCurrent() + c.get_volumeCurrent());
 						t.set_temperature((t.get_volumeCurrent()*t.get_temperature() + c.get_volumeCurrent() * c.get_temperature())/(t.get_volumeCurrent() + c.get_volumeCurrent()));
@@ -141,6 +159,12 @@ public class Main {
 						t.set_tankRefuelNeeded(false);
 					}
 				}
+				
+				//Zmiana temperatury i objêtoœci paliwa w zbiorniku ze wzglêdu na temperaturê otoczenia
+				double TempBefore = t.get_temperature();
+				t.set_temperature(changeTankTempByDay(t.get_temperature(), simTankTemp));
+				double TempAfter = t.get_temperature();
+				t.set_volumeCurrent(t.get_volumeCurrent() + updateTankVolume(TempAfter - TempBefore, t.get_volumeCurrent()));
 			}
 			//Przejœcie do kolejnej minuty symulacji
 			int DayBefore = currentDateSet.get(Calendar.DATE);
@@ -160,10 +184,6 @@ public class Main {
 			if (HourBefore < HourAfter) {
 				refuel.println(simDayTemp);
 			}
-			//TO DO:
-			//Zmiana objêtoœci paliwa wzglêdem temperatury otoczenia
-			//Zrobiæ listê customerów dla ka¿dego tanka, bo jest tylko jedna xD
-			//Listy customerów dodaæ jako pole danego tanka
 		}
 		System.out.println("koniec");
 		
@@ -204,7 +224,6 @@ public class Main {
 		return (int) Math.ceil(fuelNeeded/fuelingSpeed);
 	}
 	
-	//TO DO:
 	//Losowanie który dystrybutor zostanie wykorzystany
 	public static int drawNozzle(List<Nozzle> nozzleList) {
 		//Sprawdzanie czy dany Nozzle nie jest zajêty i losowanie
@@ -215,6 +234,19 @@ public class Main {
 				return wantedNozzle;
 			}
 		}
+	}
+	
+	//Liniowa zmiana temperatury pod wzglêdem temperatury otoczenia
+	public static double changeTankTempByDay(double currentTemp, double targetTemp) {
+		double newTemp = 0;
+		if((targetTemp - currentTemp) < 0) {
+			newTemp = currentTemp - 0.0001;
+		}else if((targetTemp - currentTemp) > 0) {
+			newTemp = currentTemp + 0.0001;
+		}else {
+			newTemp = currentTemp;
+		}
+		return newTemp;
 	}
 
 }
