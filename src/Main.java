@@ -59,7 +59,7 @@ public class Main {
 		double simTankTemp = simDayTemp * 0.7;
 		
 		//Lista zbiorników z manualnie wprowadzanymi danymi
-		Tank tank1 = new Tank(0, nozzleList, 30000, 3000, simTankTemp, 0);
+		Tank tank1 = new Tank(0, nozzleList, 30000, 3000, simTankTemp, 0); //Dodaæ listê customerów dla danego tanka
 		Tank tank2 = new Tank(1, nozzleList, 30000, 27000, simTankTemp, 0);
 		Tank tank3 = new Tank(2, nozzleList, 30000, 27000, simTankTemp, 0);
 		Tank tank4 = new Tank(3, nozzleList, 30000, 27000, simTankTemp, 0);
@@ -84,7 +84,7 @@ public class Main {
 				}
 	
 				//Losowanie klienta je¿eli jakiœ dystrybutor jest wolny
-				if (customerList.size() < t.get_nozzleList().size() && !t.get_tankRefuelNeeded()) {
+				if (customerList.size() < t.get_nozzleList().size()) {
 					if (willCustomerArrive(customerProb)) {
 						fuelNeeded = fuelNeeded(fuelMin, fuelMax);
 						fuelingTime = fuelingTime(fuelNeeded, fuelingSpeed);
@@ -121,7 +121,7 @@ public class Main {
 				}
 				
 				//Nape³nianie zbiornika
-				if (t.get_tankRefuelNeeded() && customerList.size() < 1) {
+				if (t.get_tankRefuelNeeded()) {
 					Cistern c = cisternList.get(t.get_ID());
 					if (c.get_volumeCurrent() >= refuelingTankSpeed) {
 						t.set_volumeCurrent(t.get_volumeCurrent() + refuelingTankSpeed);
@@ -162,6 +162,8 @@ public class Main {
 			}
 			//TO DO:
 			//Zmiana objêtoœci paliwa wzglêdem temperatury otoczenia
+			//Zrobiæ listê customerów dla ka¿dego tanka, bo jest tylko jedna xD
+			//Listy customerów dodaæ jako pole danego tanka
 		}
 		System.out.println("koniec");
 		
